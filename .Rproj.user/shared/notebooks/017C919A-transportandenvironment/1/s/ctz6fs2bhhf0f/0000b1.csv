@@ -1,0 +1,28 @@
+"0","
+showtext_auto()
+targets_and_oversupply <- ggplot(target_supply,
+                                 aes(x = target,
+                                     y = oversupply)) +
+  geom_line(linetype = ""dotted"") +
+  geom_point(size = 3,
+             aes(colour = ifelse(oversupply > 0, ""#00aeef"", ""#45b049""))) +
+  scale_color_identity() +
+  geom_hline(yintercept = 0) +
+  scale_y_continuous(limits = c(-0.05, 0.8), labels = percent) +
+  scale_x_continuous(labels = percent) +
+  labs(title = ""Optimising demand for supply"",
+           subtitle = ""2030 oversupply of charging infrastructure by HDV CO2\nstandard scenario. Available charging 13.8 TWh."",
+       x = ""HDV CO2 target"",
+       y = ""Oversupply"") +
+  te_style()
+
+
+finalise_plot(plot_name = targets_and_oversupply,
+source = ""Source: T&E calculations based on T&E(2022, EU (2023)"",
+save_filepath = ""oversupply.png"",
+width_pixels = 640,
+height_pixels = 450
+)
+"
+"2","Warning: font family not found in Windows font database"
+"0",""

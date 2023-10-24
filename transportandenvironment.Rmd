@@ -1,0 +1,233 @@
+---
+title: "Interview task - Sarah Habershon"
+output:
+  html_document: default
+  pdf_document: default
+date: "2023-10-24"
+---
+
+```{r setup, include=FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+source("styles.R")
+pacman::p_load(tidyverse, ggplot2, readxl, janitor, showtext, scales, ggtern, cowplot)
+
+sheets<- "202310_data_viz_task_data.xlsx"
+names <- excel_sheets(sheets)
+data <- lapply(names, read_excel, path = sheets)
+c02_costs <- read_csv("costs.csv")
+target_supply <- read_csv("supply_targets.csv")
+country_codes <- read_csv("country_codes.csv")
+
+
+```
+
+
+  
+## Infrastructure deployment
+
+In the original chart, the x axis is discrete, but the labels contain continuous values. The y axis represents a consistent value so it's redundant - the colour scale is carrying the most salient information. I swapped the axes out so that the x axis now represents the continuous variable of escalating scenarios, and the y axis carries the key variable - the decreasing oversupply.
+
+```{r EV_charging_oversupply, warning = FALSE, echo = FALSE, message = FALSE}
+
+showtext_auto()
+targets_and_oversupply <- ggplot(target_supply,
+                                 aes(x = target,
+                                     y = oversupply)) +
+  geom_line(linetype = "dotted") +
+  geom_point(size = 3,
+             aes(colour = ifelse(oversupply > 0, "#00aeef", "#45b049"))) +
+  scale_color_identity() +
+  geom_hline(yintercept = 0) +
+  scale_y_continuous(limits = c(-0.05, 0.8), labels = percent) +
+  scale_x_continuous(labels = percent) +
+  labs(title = "Optimising demand for supply",
+           subtitle = "2030 oversupply of charging infrastructure by HDV CO2 standard scenario.\nAvailable charging 13.8 TWh.",
+       x = "HDV CO2 target",
+       y = "Oversupply") +
+  te_style()
+
+
+finalise_plot(plot_name = targets_and_oversupply,
+source = "Source: T&E calculations based on T&E(2022, EU (2023)",
+save_filepath = "oversupply.png",
+width_pixels = 640,
+height_pixels = 450
+)
+
+
+``` 
+
+<br>
+<br>
+<br>
+<br>
+  
+## Flights
+
+This is a lot of information for one chart! Ideally, it should be readable at a glance, but because there is so much data packed into one frame, it requires the reader to do a lot of work.
+There are two stories here, one showing the breakdown of emissions by pricing reime, and the other comparing the prices airlines pay per Mt. I split them into two charts, to make the information easier to digest quickly. 
+  
+```{r flights, warning = FALSE, echo = FALSE, message = FALSE}
+
+
+flights <- as.data.frame(data[1]) %>%
+  clean_names() %>%
+  rename(airline = x1,
+  `EU/Swiss ETS` = priced_under_eu_and_ch_ets,
+  `UK ETS` = priced_under_uk_ets  ,
+  `Allowances` = free_allowances_under_ets_eu_ch,
+  `No ETS` = departing_emissions_not_by_any_ets) %>%
+  pivot_longer(!airline, names_to = "price", values_to = "value")
+
+
+flights$price <- factor(flights$price, levels = c("EU/Swiss ETS", "UK ETS", "Allowances", "No ETS"))
+
+
+flight_bar <- ggplot(flights, aes(x = reorder(airline, value), y = value, group = airline,  fill = price)) +
+  geom_col(position = "stack") +
+  scale_fill_manual(values = c("#00aeef", "#7fd6f7", "#45b049", "#a2d7a4")) +
+  coord_flip() +
+  te_style() +
+  geom_hline(yintercept = 0) +
+  theme(panel.grid.major.y = element_blank(),
+        panel.grid.major.x = ggplot2::element_line(color="#cbcbcb")) +
+  labs(title = "How much do airlines pay for pollution?",
+       subtitle = "Emissions priced under emissions trading schemes\n'Allowances' refers to unpriced emissions under the EU/Swiss ETS ",
+       x = " ",
+       y = "C02 Emissions (Mt), 2022")
+
+
+
+
+flight_totals <- flights %>%
+  group_by(airline) %>%
+  summarise(total_emissions = sum(value)) %>%
+  left_join(c02_costs)
+
+
+
+flight_scatter <- ggplot(flight_totals,
+                         aes(x = total_emissions, y = ppt, label = airline)) +
+  geom_point(size = 5,
+             colour = "#45b049") +
+  geom_text(size = 10,
+            aes(hjust = ifelse(airline %in% c("Qatar Airways", "British Airways"),1,0),
+                position = position_nudge(x = ifelse(airline %in% c("Qatar Airways", "British Airways"),0.5,-0.5))),
+            check_overlap = T) +
+  scale_x_continuous(limits = c(0, 14), breaks = seq(0, 14, by = 2)) +
+  te_style() +
+  labs(title = "Carbon Price",
+       subtitle = "How much do airlines pay for their emissions?",
+       x = "C02 Emissions (Mt), 2022",
+       y = "Average price per tonne") 
+
+flight_scatter <- ggplot(flight_totals,
+                         aes(x = total_emissions, y = ppt, label = airline)) +
+  geom_point(size = 5,
+             colour = "#45b049") +
+  geom_text(size = 10,
+            aes(hjust = ifelse(airline %in% c("Qatar Airways", "British Airways"),1,0),
+                x = ifelse(airline %in% c("Qatar Airways", "British Airways"),total_emissions-0.3,total_emissions+0.3)),
+            check_overlap = T) +
+  scale_x_continuous(limits = c(0, 14), breaks = seq(0, 14, by = 2)) +
+  te_style() +
+  labs(title = "Carbon Price",
+       subtitle = "How much do airlines pay for their emissions?",
+       x = "C02 Emissions (Mt), 2022",
+       y = "Average price per tonne") 
+
+
+finalise_plot(plot_name = flight_bar,
+              source = "Source: EU transaction log, OAG scheduled flight data, Ember",
+              save_filepath = "flight_bar.png",
+              width_pixels = 640,
+              height_pixels = 450
+)
+
+finalise_plot(plot_name = flight_scatter,
+              source = "Source: EU transaction log, OAG scheduled flight data, Ember",
+              save_filepath = "flight_scatter.png",
+              width_pixels = 640,
+              height_pixels = 450
+)
+
+
+```
+
+<br>
+<br>
+<br>
+<br>
+  
+## Fuel cost
+  
+    
+Previously, the fuel type labels differentiating the two charts were in the y-axis, I've moved those up into subheadings to make the distinction clear. The date axis doesn't need to be so granular, so I changed the scale to make it easier to read, and moved the axis label information into the subtitle.
+
+```{r fuel, warning = FALSE, message = FALSE, echo = FALSE}
+
+fuel <- as.data.frame(data[2]) %>%
+  mutate(fuel_type = "Petrol") %>%
+  rbind(as.data.frame(data[2]) %>%
+          mutate(fuel_type = "Diesel")) %>%
+  clean_names() %>%
+  pivot_longer(!c(date, fuel_type), names_to = "country", values_to = "value") %>%
+  mutate(country = toupper(country)) %>%
+  left_join(country_codes %>% 
+              select(`alpha-2`, name) %>%
+              rename(country = `alpha-2`))
+
+eu_mean <- fuel %>%
+  group_by(date, fuel_type) %>%
+  summarise("value" = mean(value)) %>%
+  mutate(country = "00",
+         name = "EU average")
+
+
+fuel2 <- fuel %>%
+  rbind(eu_mean) %>%
+  mutate(colour = case_when(name == "EU average" ~ "#00aeef",
+                            name == "Netherlands" ~ "#45b049",
+                            name == "Germany" ~ "#7bb57d",
+                            name == "Bulgaria" ~"#7bb57d",
+                            TRUE ~ "black")) %>%
+  mutate(alpha = ifelse(colour != "black", 1, 0.9),
+         date = as.Date(date)) 
+
+
+
+fuels <- ggplot(fuel2, 
+       aes(x = date,
+           y = value,
+           group = country,
+           colour = colour,
+           alpha = alpha,
+           label = colour)) +
+  te_style() +
+  geom_line(size = 1.2) +
+  geom_text(aes(label = ifelse(date == max(date) & colour != "black", name, NA)), hjust = 0, nudge_x = 0.5, size = 7) +
+  scale_x_date(breaks = "6 months", labels = date_format("%b\n%Y")) +
+  scale_y_continuous(breaks = seq(0.8, 2.2, by = 0.2)) +
+  scale_color_identity() +
+  # scale_alpha() +
+  theme(legend.position = "none",
+        panel.spacing = unit(4, "lines"),
+        plot.margin = unit(c(1, 4, 1, 0), "lines")) +
+  labs(title = "Consumer price of petrol and diesel on the rise",
+       subtitle = "Real price with taxes (€/L), EU countries",
+       x = "",
+       y = "") +
+  facet_wrap(~ fuel_type) +
+  coord_cartesian(clip = 'off')
+
+finalise_plot(plot_name = fuels,
+source = "Source: European Commission Weekly Oil Bulletin",
+save_filepath = "fuels.png",
+width_pixels = 850,
+height_pixels = 550
+)
+
+
+``` 
+
