@@ -5,11 +5,11 @@ te_style <- function() {
   
   ggplot2::theme(
     plot.title = ggplot2::element_text(family=font,
-                                       size=28,
+                                       size=32,
                                        face="bold",
                                        color="#222222"),
     plot.subtitle = ggplot2::element_text(family=font,
-                                          size=22,
+                                          size=25,
                                           margin=ggplot2::margin(9,0,9,0),
                                           lineheight=.5),
     plot.caption = ggplot2::element_blank(),
@@ -22,14 +22,14 @@ te_style <- function() {
                                         size=18,
                                         color="#222222"),
     axis.title.x = ggplot2::element_text(family=font,
-                                       size=18,
+                                       size=20,
                                        color="#222222"),
     axis.title.y = ggplot2::element_text(family=font,
-                                         size=18,
+                                         size=20,
                                          color="#222222",
                                          margin = margin(r = 10)),
     axis.text = ggplot2::element_text(family=font,
-                                      size=16,
+                                      size=18,
                                       color="#222222",
                                       lineheight=.5),
     axis.text.x = ggplot2::element_text(margin=ggplot2::margin(5, b = 16)),
@@ -41,7 +41,7 @@ te_style <- function() {
     panel.grid.major.x = ggplot2::element_blank(),
     panel.background = ggplot2::element_blank(),
     strip.background = ggplot2::element_rect(fill="white"),
-    strip.text = ggplot2::element_text(size  = 20,  hjust = 0)
+    strip.text = ggplot2::element_text(size  = 20,  hjust = 0, face = "bold")
   )
 }
 
@@ -83,7 +83,6 @@ create_footer <- function (source_name) {
 #' save_filepath = "filename_that_my_plot_should_be_saved_to-nc.png",
 #' width_pixels = 640,
 #' height_pixels = 450,
-#' logo_image_path = "logo_image_filepath.png"
 #' )
 #'
 #' @export
